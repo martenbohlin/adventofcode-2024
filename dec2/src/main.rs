@@ -1,5 +1,6 @@
 use std::env;
 use std::fs::read_to_string;
+use std::cmp::min;
 
 fn main() {
     let lines = read_lines(env::args().collect::<Vec<String>>()[1].clone());
@@ -31,30 +32,45 @@ fn main() {
     }
     println!("Part 1: {}", safe);
 
-    // Part 2
+    // Part 2 recursive
     let mut safe = 0;
     for line in lines.clone() {
         let levels = line.split_whitespace()
-            .map(|level:&str| level.parse().unwrap())
+            .map(|level: &str| level.parse().unwrap())
             .collect::<Vec<i32>>();
-        let skipped_levels = bad_levels(&levels); // Handles failed once it got started
-        if skipped_levels < 2 {
+        if bad_levels_recursive(0, &levels, -1, -1) < 2 { // Safe if we go down (start at 1 above first)
             safe += 1;
-        } else {
-            if bad_levels(&levels[1..].to_vec()) == 0  { // Was the first one bad?
-                safe += 1;
+        } else if bad_levels_recursive(0, &levels, -1, 1) < 2 { // Safe if we go up (start at 1 below first)
+            safe += 1;
+        }
+    }
+    println!("Part 2 recursive: {}", safe);
+
+}
+
+
+fn bad_levels_recursive(bad_so_far: i32, levels: &Vec<i32>, last_level: i32, last_direction: i32) -> i32 {
+    if bad_so_far >= 2 { // Do not continue if we already have two bad levels
+        return bad_so_far;
+    }
+    return match levels[..] {
+        [] => 0,
+        _ => {
+            let level = levels[0];
+            let diff = level - last_level;
+            let direction = if diff > 0 { 1 } else { -1 };
+
+            if last_level != -1 && (diff == 0 || diff.abs() > 3 || direction != last_direction) {
+                // Skip this level
+                bad_levels_recursive(bad_so_far+1, &levels[1..].to_vec(), last_level, last_direction)
             } else {
-                let mut a = levels[0..1].to_vec();
-                let b = levels[2..].to_vec();
-                a.extend(b);
-                if bad_levels(&a) == 0 { // Was the second one bad?
-                    safe += 1;
-                }
+                min(
+                    bad_levels_recursive(bad_so_far + 1, &levels[1..].to_vec(), last_level, last_direction), // Skip this level
+                    bad_levels_recursive(bad_so_far, &levels[1..].to_vec(), level, last_direction) // Use this level
+                )
             }
         }
     }
-    println!("Part 2: {}", safe);
-
 }
 
 fn bad_levels(levels: &Vec<i32>) -> i32 {
