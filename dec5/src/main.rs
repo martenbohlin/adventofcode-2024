@@ -5,10 +5,11 @@ use std::fs::read_to_string;
 
 fn main() {
     let (rules, updates) = read_file(env::args().collect::<Vec<String>>()[1].clone());
-    part1(rules, updates);
+    part1(&rules, &updates);
+    part2(&rules, updates);
 }
 
-fn part1(rules: HashMap<i32,HashSet<i32>>, updates: Vec<Vec<i32>>) {
+fn part1(rules: &HashMap<i32,HashSet<i32>>, updates: &Vec<Vec<i32>>) {
     let mut sum = 0;
     for update in updates {
         if update_ok(&rules, &update) {
@@ -16,6 +17,39 @@ fn part1(rules: HashMap<i32,HashSet<i32>>, updates: Vec<Vec<i32>>) {
         }
     }
     println!("Part 1: {}", sum);
+}
+
+fn part2(rules: &HashMap<i32,HashSet<i32>>, updates: Vec<Vec<i32>>) {
+    let mut sum = 0;
+    for mut update in updates {
+        if !update_ok(&rules, &update) {
+            let fixed_update = fix_order(&rules, &mut update);
+            sum += fixed_update[(fixed_update.len()-1)/2];
+        }
+    }
+    println!("Part 2: {}", sum);
+}
+
+fn fix_order(rules: &HashMap<i32,HashSet<i32>>, update: &mut Vec<i32>) -> Vec<i32> {
+    let mut changed = true;
+    while changed {
+        changed = false;
+        for i in 1..update.len() {
+            match rules.get(&update[i]) {
+                Some(rule) => {
+                    for j in 0..i {
+                        if rule.contains(&update[j]) { // Found a page that must be after this one
+                            update.swap(i, j);
+                            changed = true;
+                            break;
+                        }
+                    }
+                },
+                None => continue,
+            }
+        }
+    }
+    return update.clone();
 }
 
 fn update_ok(rules: &HashMap<i32,HashSet<i32>>, update: &Vec<i32>) -> bool {
