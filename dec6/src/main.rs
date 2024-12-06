@@ -5,10 +5,11 @@ use std::fs::read_to_string;
 fn main() {
     let grid = read_file(env::args().collect::<Vec<String>>()[1].clone());
 
-    part1(&grid);
+    let visited_positions = part1(&grid);
+    part2(grid, &visited_positions);
 }
 
-fn part1(grid: &Vec<Vec<char>>) {
+fn part1(grid: &Vec<Vec<char>>) -> HashSet<(i32, i32)> {
     let mut visited_positions:HashSet<(i32, i32)> = HashSet::new();
     let mut coordinate = find_start_position(&grid);
     let mut direction = Direction::North;
@@ -18,6 +19,41 @@ fn part1(grid: &Vec<Vec<char>>) {
     }
 
     println!("Part 1: {}", visited_positions.len());
+    return visited_positions;
+}
+
+fn part2(mut grid: Vec<Vec<char>>, visited_positions: &HashSet<(i32, i32)>) {
+    let start = find_start_position(&grid);
+    let mut causing_loop = 0;
+
+    for y in 0..grid.len() {
+        for x in 0..grid[y].len() {
+            if visited_positions.contains(&(x as i32, y as i32)) {
+                grid[y][x] = '#';
+                if stuck_in_loop(&grid, start) {
+                    causing_loop += 1;
+                }
+                grid[y][x] = '.';
+            }
+        }
+    }
+
+    println!("Part 2: {}", causing_loop);
+}
+
+fn stuck_in_loop(grid: &Vec<Vec<char>>, start: (i32, i32)) -> bool {
+    let mut coordinate = start.clone();
+    let mut visited_positions:HashSet<(Direction,(i32, i32))> = HashSet::new();
+    let mut direction = Direction::North;
+    while in_grid(&grid, coordinate) {
+        if visited_positions.contains(&(direction, coordinate)) {
+            return true;
+        }
+        visited_positions.insert((direction, coordinate));
+        (direction, coordinate) = move_guard(&grid, direction, coordinate);
+    }
+    //println!("Not stuck in loop {:?}", visited_positions);
+    return false;
 }
 
 fn move_guard(grid: &Vec<Vec<char>>, direction: Direction, coordinate: (i32, i32)) -> (Direction, (i32, i32)) {
@@ -49,6 +85,7 @@ fn in_grid(grid: &Vec<Vec<char>>, coordinate: (i32, i32)) -> bool {
     x >= 0 && y >= 0 && y < grid.len() as i32 && x < grid[y as usize].len() as i32
 }
 
+#[derive(Debug, PartialEq, Eq, Hash, Copy, Clone)]
 enum Direction {
     North,
     East,
