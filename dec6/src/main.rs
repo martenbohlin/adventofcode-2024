@@ -5,8 +5,8 @@ use std::fs::read_to_string;
 fn main() {
     let grid = read_file(env::args().collect::<Vec<String>>()[1].clone());
 
-    let visited_positions = part1(&grid);
-    part2(grid, &visited_positions);
+    part1(&grid);
+    part2(grid);
 }
 
 fn part1(grid: &Vec<Vec<char>>) -> HashSet<(i32, i32)> {
@@ -22,29 +22,46 @@ fn part1(grid: &Vec<Vec<char>>) -> HashSet<(i32, i32)> {
     return visited_positions;
 }
 
-fn part2(mut grid: Vec<Vec<char>>, visited_positions: &HashSet<(i32, i32)>) {
+fn part2(mut grid: Vec<Vec<char>>) {
     let start = find_start_position(&grid);
     let mut causing_loop = 0;
+    let mut tested = HashSet::new();
 
-    for y in 0..grid.len() {
-        for x in 0..grid[y].len() {
-            if visited_positions.contains(&(x as i32, y as i32)) {
-                grid[y][x] = '#';
-                if stuck_in_loop(&grid, start) {
-                    causing_loop += 1;
-                }
-                grid[y][x] = '.';
+    let (path, known) = find_path(&grid, start);
+
+    let mut path_index = 0;
+    for (direction, coordinate) in path {
+        path_index = path_index + 1;
+        if !tested.contains(&coordinate) {
+            tested.insert(coordinate);
+            grid[coordinate.1 as usize][coordinate.0 as usize] = '#';
+            if stuck_in_loop(&grid, coordinate, direction, &known)  {
+                causing_loop += 1;
             }
+            grid[coordinate.1 as usize][coordinate.0 as usize] = '.';
         }
     }
 
     println!("Part 2: {}", causing_loop);
 }
 
-fn stuck_in_loop(grid: &Vec<Vec<char>>, start: (i32, i32)) -> bool {
+fn find_path(grid: &Vec<Vec<char>>, start: (i32, i32)) -> (Vec<(Direction,(i32, i32))>,HashSet<(Direction,(i32, i32))>) {
     let mut coordinate = start.clone();
-    let mut visited_positions:HashSet<(Direction,(i32, i32))> = HashSet::new();
+    let mut path:Vec<(Direction,(i32, i32))> = Vec::new();
+    let visited_positions:HashSet<(Direction,(i32, i32))> = HashSet::new();
     let mut direction = Direction::North;
+    while in_grid(&grid, coordinate) {
+        path.push((direction, coordinate));
+        (direction, coordinate) = move_guard(&grid, direction, coordinate);
+    }
+    //println!("Not stuck in loop {:?}", visited_positions);
+    return (path, visited_positions);
+}
+
+fn stuck_in_loop(grid: &Vec<Vec<char>>, start: (i32, i32), start_direction: Direction, known: &HashSet<(Direction,(i32, i32))>) -> bool {
+    let mut coordinate = start.clone();
+    let mut visited_positions = known.clone();
+    let mut direction = start_direction;
     while in_grid(&grid, coordinate) {
         if visited_positions.contains(&(direction, coordinate)) {
             return true;
