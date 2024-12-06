@@ -1,12 +1,17 @@
 use std::collections::HashSet;
 use std::env;
 use std::fs::read_to_string;
+use std::time::Instant;
 
 fn main() {
     let grid = read_file(env::args().collect::<Vec<String>>()[1].clone());
 
-    part1(&grid);
+    let visited_positions = part1(&grid);
+
+    let now = Instant::now();
     part2(grid);
+    let elapsed = now.elapsed();
+    println!("Elapsed: {:.2?}", elapsed);
 }
 
 fn part1(grid: &Vec<Vec<char>>) -> HashSet<(i32, i32)> {
