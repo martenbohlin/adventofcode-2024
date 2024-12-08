@@ -2,7 +2,11 @@ use std::env;
 use std::fs::read_to_string;
 
 fn main() {
-    let grid = read_file(env::args().collect::<Vec<String>>()[1].clone());
+    let grid = read_file(env::args().collect::<Vec<String>>()[1].clone())
+        .unwrap()  // panic on possible file-reading errors
+        .lines()  // split the string into an iterator of string slices
+        .map(|line| line.chars().collect())  // make each slice into a string
+        .collect();
     debug(&grid);
 
     part1(&grid);
