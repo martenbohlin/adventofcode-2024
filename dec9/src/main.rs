@@ -1,3 +1,4 @@
+use std::collections::HashSet;
 use std::fs::read_to_string;
 use std::env;
 
@@ -5,6 +6,7 @@ fn main() {
     let disk = parse_input();
 
     part1(&disk);
+    part2(&disk);
 }
 
 fn part1(input_disk: &Vec<Option<MyFile>>) {
@@ -27,6 +29,85 @@ fn part1(input_disk: &Vec<Option<MyFile>>) {
     println!("Part 1: {}", checksum_disk(&disk));
 }
 
+fn part2(input_disk: &Vec<Option<MyFile>>) {
+    let mut moved_files:HashSet<MyFile> = HashSet::new();
+    let mut disk = input_disk.clone();
+    let mut i = disk.len() - 1;
+    while i > 0 {
+        if (i % 1000) == 0 {
+            println!("i: {}", i);
+        }
+        match disk[i] {
+            Some(f) => {
+                if !moved_files.contains(&f) {
+                    match find_next_free_of_size(&disk, f.size) {
+                        Some(j) => {
+                            if j < i {
+                                move_file(&mut disk, i - f.size as usize + 1, j, f.size);
+                                moved_files.insert(f);
+                            }
+                        },
+                        None => {},
+                    }
+                }
+                if i < f.size as usize {
+                    break;
+                }
+                i -= f.size as usize;
+            },
+            None => {
+                i -= 1;
+            },
+        }
+    }
+
+    println!("Part 2: {}", checksum_disk(&disk));
+}
+
+fn debug(disk: &Vec<Option<MyFile>>) {
+    for i in 0..disk.len() {
+        match disk[i] {
+            Some(f) => print!("{}", f.id),
+            None => print!("."),
+        }
+    }
+    println!();
+}
+
+fn move_file(disk: &mut Vec<Option<MyFile>>, from: usize, to: usize, size: i32) {
+    for i in 0..size {
+        disk[to + i as usize] = disk[from + i as usize];
+        disk[from + i as usize] = None;
+    }
+}
+
+fn find_next_free_of_size(disk: &Vec<Option<MyFile>>, size: i32) -> Option<usize> {
+    let mut i = 0;
+    let mut free_start = None;
+    while i < disk.len() {
+        match disk[i] {
+            Some(_f) => { free_start = None },
+            None => {
+                match free_start {
+                    Some(start) => {
+                        if i - start + 1 == size as usize {
+                            return Some(start);
+                        }
+                    },
+                    None => {
+                        if size == 1 {
+                            return Some(i);
+                        }
+                        free_start = Some(i);
+                    }
+                }
+            }
+        }
+        i += 1;
+    }
+    return None;
+}
+
 fn find_next_free(disk: &Vec<Option<MyFile>>, start: usize) -> usize {
     let mut i = start + 1;
     while i < disk.len() {
@@ -46,7 +127,7 @@ fn checksum_disk(disk: &Vec<Option<MyFile>>) -> i64 {
             Some(f) => {
                 sum += (f.id * i) as i64;
             },
-            None => continue,
+            None => {},
         }
         i = i + 1;
     }
@@ -76,7 +157,7 @@ fn parse_input() -> Vec<Option<MyFile>> {
     return result;
 }
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
 struct MyFile {
     id: i32,
     size: i32,
