@@ -6,6 +6,7 @@ fn main() {
     let machines = parse_file(env::args().collect::<Vec<String>>()[1].clone());
 
     part1(&machines);
+    part2(&machines)
 }
 
 fn part1(machines: &Vec<Machine>) {
@@ -19,7 +20,7 @@ fn part1(machines: &Vec<Machine>) {
     println!("Part 1: {}", sum);
 }
 
-fn solve_part1(machine: &Machine) -> Option<i32> {
+fn solve_part1(machine: &Machine) -> Option<i64> {
     for i in 0..100 {
         if (machine.prize.0 - machine.button_a.0 * i) % machine.button_b.0 == 0 {
             let j = (machine.prize.0 - machine.button_a.0 * i) / machine.button_b.0;
@@ -31,11 +32,41 @@ fn solve_part1(machine: &Machine) -> Option<i32> {
     return None;
 }
 
+fn part2(machines: &Vec<Machine>) {
+    let mut sum = 0;
+    for machine in machines {
+        match solve_part2(machine) {
+            Some(tokens) => sum += tokens,
+            None => (),
+        }
+    }
+    println!("Part 2: {}", sum);
+}
+
+fn solve_part2(machine: &Machine) -> Option<i64> {
+    let x = machine.prize.0 + 10000000000000;
+    let y = machine.prize.1 + 10000000000000;
+    let ax = machine.button_a.0;
+    let bx = machine.button_b.0;
+    let ay = machine.button_a.1;
+    let by = machine.button_b.1;
+
+    let a = (by*x - bx*y)/(by*ax - bx*ay);
+    if (x - ax * a) % bx == 0 {
+        let b = (x - ax * a) / bx;
+        if y == ay * a + by * b {
+            return Some(a*3 + b);
+        }
+    }
+
+    return None;
+}
+
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
 struct Machine {
-    button_a: (i32, i32),
-    button_b: (i32, i32),
-    prize: (i32, i32),
+    button_a: (i64, i64),
+    button_b: (i64, i64),
+    prize: (i64, i64),
 }
 
 fn parse_file(filename: String) -> Vec<Machine> {
@@ -52,16 +83,16 @@ fn parse_file(filename: String) -> Vec<Machine> {
     let mut result = Vec::new();
     for i in (0..lines.len()).step_by(4) {
         let button_a_captures = button_a.captures(&lines[i]).unwrap();
-        let button_a_x = button_a_captures.get(1).unwrap().as_str().parse::<i32>().unwrap();
-        let button_a_y = button_a_captures.get(2).unwrap().as_str().parse::<i32>().unwrap();
+        let button_a_x = button_a_captures.get(1).unwrap().as_str().parse::<i64>().unwrap();
+        let button_a_y = button_a_captures.get(2).unwrap().as_str().parse::<i64>().unwrap();
 
         let button_b_captures = button_b.captures(&lines[i+1]).unwrap();
-        let button_b_x = button_b_captures.get(1).unwrap().as_str().parse::<i32>().unwrap();
-        let button_b_y = button_b_captures.get(2).unwrap().as_str().parse::<i32>().unwrap();
+        let button_b_x = button_b_captures.get(1).unwrap().as_str().parse::<i64>().unwrap();
+        let button_b_y = button_b_captures.get(2).unwrap().as_str().parse::<i64>().unwrap();
 
         let prize_captures = prize.captures(&lines[i+2]).unwrap();
-        let prize_x = prize_captures.get(1).unwrap().as_str().parse::<i32>().unwrap();
-        let prize_y = prize_captures.get(2).unwrap().as_str().parse::<i32>().unwrap();
+        let prize_x = prize_captures.get(1).unwrap().as_str().parse::<i64>().unwrap();
+        let prize_y = prize_captures.get(2).unwrap().as_str().parse::<i64>().unwrap();
 
         result.push(Machine {
             button_a: (button_a_x, button_a_y),
