@@ -40,39 +40,31 @@ fn part2(paths: HashMap<Node, HashSet<Node>>, map: &Vec<Vec<char>>) {
 }
 
 fn dijkstra(map: &Vec<Vec<char>>, direction: Direction, start: (usize, usize)) -> (i32, HashMap<Node, HashSet<Node>>) {
-    let mut dist:HashMap<Node, i32> = HashMap::new();
+    let mut distance:HashMap<Node, i32> = HashMap::new();
     let mut queue: Vec<Node> = Vec::new();
     let mut prev: HashMap<Node, HashSet<Node>> = HashMap::new();
     for y in 0..map.len() {
         for x in 0..map[y].len() {
             if map[y][x] != '#' {
-                dist.insert(Node { pos: (x, y), direction: Direction::North }, i32::MAX);
-                queue.push(Node { pos: (x, y), direction: Direction::North });
-
-                dist.insert(Node { pos: (x, y), direction: Direction::East }, i32::MAX);
-                queue.push(Node { pos: (x, y), direction: Direction::East });
-
-                dist.insert(Node { pos: (x, y), direction: Direction::South }, i32::MAX);
-                queue.push(Node { pos: (x, y), direction: Direction::South });
-
-                dist.insert(Node { pos: (x, y), direction: Direction::West}, i32::MAX);
-                queue.push(Node { pos: (x, y), direction: Direction::West });
+                distance.insert(Node { pos: (x, y), direction: Direction::North }, i32::MAX);
+                distance.insert(Node { pos: (x, y), direction: Direction::East }, i32::MAX);
+                distance.insert(Node { pos: (x, y), direction: Direction::South }, i32::MAX);
+                distance.insert(Node { pos: (x, y), direction: Direction::West}, i32::MAX);
             }
         }
     }
     let end = find('E', &map);
-    dist.insert(Node { pos: start, direction }, 0);
+    let start_node = Node { pos: start, direction };
+    distance.insert(start_node, 0);
+    queue.push(start_node);
 
 
     let mut min_dist = i32::MAX;
     while queue.len() > 0 {
-        if queue.len() % 100 == 0 {
-            println!("Q: {:?}", queue.len());
-        }
-        let index = find_shortest(&queue, &dist);
+        let index = find_shortest(&queue, &distance);
         let current = queue.swap_remove(index);
 
-        let current_dist = dist.get(&current).unwrap().clone();
+        let current_dist = distance.get(&current).unwrap().clone();
         if current_dist > min_dist {
             break;
         }
@@ -82,15 +74,18 @@ fn dijkstra(map: &Vec<Vec<char>>, direction: Direction, start: (usize, usize)) -
             continue;
         }
 
-        update_cost(&mut dist, &mut prev, current, Node { pos: mov(current.direction, current.pos), direction: current.direction }, current_dist + 1);
-        update_cost(&mut dist, &mut prev, current, Node { pos: current.pos, direction: rotate_left(current.direction) }, current_dist + 1000);
-        update_cost(&mut dist, &mut prev, current, Node { pos: current.pos, direction: rotate_right(current.direction) }, current_dist + 1000);
+        update_cost(&mut distance, &mut prev, &mut queue, current,
+                    Node { pos: mov(current.direction, current.pos), direction: current.direction }, current_dist + 1);
+        update_cost(&mut distance, &mut prev, &mut queue, current,
+                    Node { pos: current.pos, direction: rotate_left(current.direction) }, current_dist + 1000);
+        update_cost(&mut distance, &mut prev, &mut queue, current,
+                    Node { pos: current.pos, direction: rotate_right(current.direction) }, current_dist + 1000);
     }
 
     return (min_dist, prev);
 }
 
-fn update_cost(dist: &mut HashMap<Node, i32>, prev: &mut HashMap<Node, HashSet<Node>>, prev_node: Node, node: Node, new_cost: i32) {
+fn update_cost(dist: &mut HashMap<Node, i32>, prev: &mut HashMap<Node, HashSet<Node>>, queue: &mut Vec<Node>, prev_node: Node, node: Node, new_cost: i32) {
     match dist.get(&node) {
         None => {}
         Some(d) => {
@@ -98,6 +93,7 @@ fn update_cost(dist: &mut HashMap<Node, i32>, prev: &mut HashMap<Node, HashSet<N
                 prev.entry(node).or_insert_with(||HashSet::new()).insert(prev_node);
                 dist.insert(node, new_cost);
             } else if *d > new_cost {
+                queue.push(node);
                 dist.insert(node, new_cost);
                 let mut p = HashSet::new();
                 p.insert(prev_node);
