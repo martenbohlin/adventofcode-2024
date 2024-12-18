@@ -8,7 +8,7 @@ fn main() {
     let bytes = env::args().collect::<Vec<String>>()[3].parse::<usize>().unwrap();
 
     part1(corrupted[0..bytes].to_vec(), width);
-    part2(corrupted, width);
+    part2(corrupted, bytes, width);
 }
 
 fn part1(corrupted: Vec<(usize, usize)>, size: usize) {
@@ -18,8 +18,8 @@ fn part1(corrupted: Vec<(usize, usize)>, size: usize) {
     println!("Part 1: {:?}", length);
 }
 
-fn part2(corrupted: Vec<(usize, usize)>, size: usize) {
-    for n in 0..corrupted.len() {
+fn part2(corrupted: Vec<(usize, usize)>, start_at: usize, size: usize) {
+    for n in start_at..corrupted.len() {
         let sub = corrupted[0..n].to_vec();
         let (length, paths) = dijkstra(&sub, size, (0, 0), (size - 1, size - 1));
         //debug(sub, size, paths);
