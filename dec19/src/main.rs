@@ -1,39 +1,48 @@
-use std::collections::HashSet;
+use std::collections::HashMap;
 use std::env;
 use std::fs::read_to_string;
 
 fn main() {
     let (towels, pattenrs) = read_file(env::args().collect::<Vec<String>>()[1].clone());
-    part1(towels, pattenrs);
+    part1(&towels, &pattenrs);
+    part2(&towels, &pattenrs);
 }
 
-fn part1(towels: Vec<String>, patterns: Vec<String>) {
-    let mut unmatched:HashSet<String> = HashSet::new();
+fn part1(towels: &Vec<String>, patterns: &Vec<String>) {
+    let mut unmatched:HashMap<String, i64> = HashMap::new();
     let mut count = 0;
     for pattern in patterns {
-        if can_make_pattern(&pattern, &towels, &mut unmatched) {
+        if can_make_pattern(pattern, towels, &mut unmatched) > 0{
             count += 1;
         }
     }
     println!("Part 1: {:?}", count);
 }
 
-fn can_make_pattern(pattern: &String, towels: &Vec<String>, unmatched: &mut HashSet<String>) -> bool {
+fn part2(towels: &Vec<String>, patterns: &Vec<String>) {
+    let mut unmatched:HashMap<String, i64> = HashMap::new();
+    let mut count = 0;
+    for pattern in patterns {
+        count += can_make_pattern(pattern, towels, &mut unmatched);
+    }
+    println!("Part 2: {:?}", count);
+}
+
+fn can_make_pattern(pattern: &String, towels: &Vec<String>, calculated: &mut HashMap<String, i64>) -> i64 {
     if pattern.len() == 0 {
-        return true;
+        return 1;
     }
-    if unmatched.contains(pattern) {
-        return false;
+    if calculated.contains_key(pattern) {
+        return *calculated.get(pattern).unwrap();
     }
+    let mut count = 0;
     for towel in towels {
         if pattern.starts_with(towel) {
-            if can_make_pattern(&pattern[towel.len()..].to_string(), towels, unmatched) {
-                return true;
-            }
+            count += can_make_pattern(&pattern[towel.len()..].to_string(), towels, calculated);
         }
     }
-    unmatched.insert(pattern.clone());
-    return false;
+    calculated.insert(pattern.clone(), count);
+    return count;
 }
 
 fn read_file(filename: String) -> (Vec<String>, Vec<String>) {
