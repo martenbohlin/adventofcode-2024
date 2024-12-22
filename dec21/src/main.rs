@@ -1,106 +1,80 @@
-use once_cell::sync::OnceCell;
 use std::env;
 use std::fs::read_to_string;
 use cached::proc_macro::cached;
 
-static NUM_KEYPAD: OnceCell<Vec<Vec<char>>> = OnceCell::new();
+static NUM_KEYPAD: [[char; 3]; 4] = [
+    ['7', '8', '9'],
+    ['4', '5', '6'],
+    ['1', '2', '3'],
+    ['X', '0', 'A'],
+];
 
-static DIRECTION_KEYPAD: OnceCell<Vec<Vec<char>>> = OnceCell::new();
+
+static DIRECTION_KEYPAD: [[char; 3]; 2] = [
+    ['X', '^', 'A'],
+    ['<', 'v', '>'],
+];
+
 
 fn main() {
-    NUM_KEYPAD.set(
-        [
-            ['7', '8', '9'].to_vec(),
-            ['4', '5', '6'].to_vec(),
-            ['1', '2', '3'].to_vec(),
-            ['X', '0', 'A'].to_vec(),
-        ].to_vec()
-    ).unwrap();
-
-    DIRECTION_KEYPAD.set(
-        [
-            ['X', '^', 'A'].to_vec(),
-            ['<', 'v', '>'].to_vec(),
-        ].to_vec()
-    ).unwrap();
-
     let codes = read_file(env::args().collect::<Vec<String>>()[1].clone());
     part1(&codes);
     part2(&codes);
 }
 
 fn part1(codes: &Vec<Vec<char>>) {
-    let mut sum = 0;
-    for code in codes {
-        let mut movement3 = 0_i64;
-        let mut prev_button = 'A';
-        for button in code {
-            let moves = best_move_for_number_pad(prev_button, *button, 2+1);
-            prev_button = *button;
-            movement3 += moves
-        }
-
-        let code_value = code[0..code.len()-1].into_iter().collect::<String>().parse::<i64>().unwrap();
-        println!("   {} * {}", movement3, code_value);
-        sum += code_value * movement3;
-    }
-    println!("Part 1: {}", sum);
+    println!("Part 1: {}", solve(codes, 2));
 }
 
 fn part2(codes: &Vec<Vec<char>>) {
-    let mut sum = 0;
+    println!("Part 2: {}", solve(codes, 25));
+}
+
+fn solve(codes: &Vec<Vec<char>>, nr_directional: usize) -> i64 {
+    let mut sum_of_complexity = 0;
     for code in codes {
-        let mut movement = 0_i64;
+        let mut moves = 0_i64;
         let mut prev_button = 'A';
         for button in code {
-            let moves = best_move_for_number_pad(prev_button, *button, 25+1);
+            // For each digit to enter, find the optimal number of buttons i have to push
+            moves += best_move_for_number_pad(prev_button, *button, nr_directional + 1);
             prev_button = *button;
-            movement += moves;
         }
 
-        let code_value = code[0..code.len()-1].into_iter().collect::<String>().parse::<i64>().unwrap();
-        println!("   {} * {}", movement, code_value);
-        sum += code_value * movement;
+        let code_value = code[0..code.len() - 1].into_iter().collect::<String>().parse::<i64>().unwrap();
+        println!("   {} * {}", moves, code_value);
+        sum_of_complexity += code_value * moves;
     }
-    // 423797863237514 to high
-    println!("Part 2: {}", sum);
+    sum_of_complexity
 }
 
 fn best_move_for_number_pad(prev_button: char, number_button: char, nr_directional: usize) ->  i64 {
-    let keypad = NUM_KEYPAD.get().unwrap();
+    let keypad = NUM_KEYPAD;
     let possible_moves = move_to(keypad, find_button(keypad, &prev_button), &number_button).unwrap();
 
-    let mut result = i64::MAX;
-    for moves in &possible_moves {
-        let mut top_level_buttons = 0;
-        let mut prev_button = 'A';
-        for button in moves {
-            top_level_buttons += best_move_for_direction_pad(prev_button, *button, nr_directional-1);
-            prev_button = *button;
-        }
-        result = result.min(top_level_buttons);
-    }
-
-    result
+    best_move(nr_directional, &possible_moves)
 }
 
 #[cached]
 fn best_move_for_direction_pad(prev_button: char, button: char, depth: usize) ->  i64 {
-    if depth == 0 {
+    if depth == 0 { // This is me pushing a button, that's just 1 move
         return 1;
     }
 
-    let keypad = DIRECTION_KEYPAD.get().unwrap();
+    let keypad = DIRECTION_KEYPAD;
     let possible_moves = move_to(keypad, find_button(keypad, &prev_button), &button).unwrap();
 
+    best_move(depth, &possible_moves)
+}
+
+fn best_move(depth: usize, possible_moves: &Vec<Vec<char>>) -> i64 {
     let mut result = i64::MAX;
-    for moves in &possible_moves {
+    for moves in possible_moves {
         let mut top_level_buttons = 0;
         let mut prev_button = 'A';
         for button in moves {
-            top_level_buttons += best_move_for_direction_pad(prev_button, *button, depth-1);
+            top_level_buttons += best_move_for_direction_pad(prev_button, *button, depth - 1);
             prev_button = *button;
-
         }
         result = result.min(top_level_buttons);
     }
@@ -108,32 +82,8 @@ fn best_move_for_direction_pad(prev_button: char, button: char, depth: usize) ->
     result
 }
 
-fn directional_robot(start_at: (usize, usize), moves: &Vec<char>) -> Vec<Vec<char>> {
-    //let mut pos2: (usize, usize) = find_button(&DIRECTION_KEYPAD, &'A');
-    let pos2 = start_at;
-    let mut movements2: Vec<Vec<char>> = Vec::new();
-    let mut possible_combinations: Vec<Vec<char>> = Vec::new();
-    for button2 in moves {
-        let next_moves = move_to(DIRECTION_KEYPAD.get().unwrap(), pos2, &button2).unwrap();
-        if possible_combinations.is_empty() {
-            possible_combinations = next_moves;
-        } else {
-            let mut next_combinations = Vec::new();
-            for combination in &possible_combinations {
-                for next_move in &next_moves {
-                    let mut y = combination.clone();
-                    y.append(&mut next_move.clone());
-                    next_combinations.push(y);
-                }
-            }
-            possible_combinations = next_combinations;
-        }
-        movements2.append(&mut possible_combinations);
-    }
-    movements2
-}
-
-fn move_to(keypad: &Vec<Vec<char>>, pos: (usize, usize), button: &char) -> Option<Vec<Vec<char>>> {
+// Find all possible ways to move from a position on the key-pad to a button
+fn move_to<const W: usize, const H: usize>(keypad: [[char;W];H], pos: (usize, usize), button: &char) -> Option<Vec<Vec<char>>> {
     let target = find_button(keypad, button);
 
     let dy = pos.1 as i32 - target.1 as i32;
@@ -177,7 +127,8 @@ fn move_to(keypad: &Vec<Vec<char>>, pos: (usize, usize), button: &char) -> Optio
     Some(result)
 }
 
-fn find_button(keypad: &Vec<Vec<char>>, button: &char) -> (usize, usize) {
+// Locate a button on the keypad
+fn find_button<const W: usize, const H: usize>(keypad: [[char;W];H], button: &char) -> (usize, usize) {
     for y in 0..keypad.len() {
         for x in 0..keypad[y].len() {
             if keypad[y][x] == *button {
