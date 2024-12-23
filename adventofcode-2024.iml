@@ -9,12 +9,14 @@
       <sourceFolder url="file://$MODULE_DIR$/dec9/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/dec20/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/dec21/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/dec23/src" isTestSource="false" />
       <excludeFolder url="file://$MODULE_DIR$/dec1/target" />
       <excludeFolder url="file://$MODULE_DIR$/dec10/target" />
       <excludeFolder url="file://$MODULE_DIR$/dec3/target" />
       <excludeFolder url="file://$MODULE_DIR$/dec9/target" />
       <excludeFolder url="file://$MODULE_DIR$/dec20/target" />
       <excludeFolder url="file://$MODULE_DIR$/dec21/target" />
+      <excludeFolder url="file://$MODULE_DIR$/dec23/target" />
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
