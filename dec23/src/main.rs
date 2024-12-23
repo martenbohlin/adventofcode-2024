@@ -32,7 +32,7 @@ fn part2(computers: &HashMap<Computer,HashSet<Computer>>) {
     let mut largest = Network(HashSet::new());
     for c in computers.keys() {
         if c.starts_with("t") {
-            let xs = all_networks(computers, c);
+            let xs = largest_networks(computers, c);
             for x in xs {
                 if x.0.len() > largest.0.len() {
                     largest = x;
@@ -46,12 +46,15 @@ fn part2(computers: &HashMap<Computer,HashSet<Computer>>) {
     println!("Part 2: {:?}", computers);
 }
 
-fn all_networks(computers: &HashMap<Computer,HashSet<Computer>>, base: &Computer) -> HashSet<Network> {
+fn largest_networks(computers: &HashMap<Computer,HashSet<Computer>>, base: &Computer) -> HashSet<Network> {
     let mut result:HashSet<Network> = HashSet::new();
-    for size in 4..computers.len() {
+    for size in (3..computers.len()).rev() {
         let xs = networks_of_size(computers, base, size);
         for x in xs {
             result.insert(x.clone());
+        }
+        if result.len() > 0 {
+            break;
         }
     }
     result
