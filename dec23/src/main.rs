@@ -2,6 +2,7 @@ use std::collections::{HashMap, HashSet};
 use std::env;
 use std::fs::read_to_string;
 use std::hash::{Hash,Hasher};
+use itertools::Itertools;
 
 fn main() {
     let connections = read_file(env::args().collect::<Vec<String>>()[1].clone());
@@ -10,17 +11,15 @@ fn main() {
         computers.entry(a.clone()).or_insert(HashSet::new()).insert(b.clone());
         computers.entry(b.clone()).or_insert(HashSet::new()).insert(a.clone());
     }
-    //for c in computers.keys() {
-    //    println!("{}: {:?}", c, computers.get(c).unwrap());
-    //}
     part1(&computers);
+    part2(&computers);
 }
 
 fn part1(computers: &HashMap<Computer,HashSet<Computer>>) {
     let mut groups: HashSet<Network> = HashSet::new();
     for c in computers.keys() {
         if c.starts_with("t") {
-            let xs = has_group_of_3(computers, c);
+            let xs = networks_of_size(computers, c, 3);
             for x in xs {
                 groups.insert(x.clone());
             }
@@ -29,21 +28,57 @@ fn part1(computers: &HashMap<Computer,HashSet<Computer>>) {
     println!("Part 1: {:?}", groups.len());
 }
 
-fn has_group_of_3(computers: &HashMap<Computer,HashSet<Computer>>, base: &Computer) -> HashSet<Network> {
-    let mut result:HashSet<Network> = HashSet::new();
-    for c1 in computers.get(base).unwrap() {
-        for c2 in computers.get(c1).unwrap() {
-            if computers.get(c2).unwrap().contains(base) {
-                let mut xs = HashSet::new();
-                xs.insert(base.clone());
-                xs.insert(c1.clone());
-                xs.insert(c2.clone());
-                result.insert(Network(xs));
+fn part2(computers: &HashMap<Computer,HashSet<Computer>>) {
+    let mut largest = Network(HashSet::new());
+    for c in computers.keys() {
+        if c.starts_with("t") {
+            let xs = all_networks(computers, c);
+            for x in xs {
+                if x.0.len() > largest.0.len() {
+                    largest = x;
+                }
             }
         }
     }
+    let computers = largest.0.iter()
+        .sorted()
+        .join(",");
+    println!("Part 2: {:?}", computers);
+}
 
-    return result;
+fn all_networks(computers: &HashMap<Computer,HashSet<Computer>>, base: &Computer) -> HashSet<Network> {
+    let mut result:HashSet<Network> = HashSet::new();
+    for size in 4..computers.len() {
+        let xs = networks_of_size(computers, base, size);
+        for x in xs {
+            result.insert(x.clone());
+        }
+    }
+    result
+}
+
+fn networks_of_size(computers: &HashMap<Computer,HashSet<Computer>>, base: &Computer, size: usize) -> HashSet<Network> {
+    let mut result:HashSet<Network> = HashSet::new();
+    let possible_networks: Vec<Vec<&Computer>> = computers.get(base).unwrap().iter().combinations(size-1).collect::<Vec<Vec<&Computer>>>();
+    'outer: for possible_network in possible_networks {
+        for i in 0..(possible_network.len() - 1) {
+            let c1 = possible_network[i];
+            for j in i + 1..possible_network.len() {
+                let c2 = possible_network[j];
+                if !computers.get(c1).unwrap().contains(c2) {
+                    continue 'outer;
+                }
+            }
+        }
+        let mut xs = HashSet::new();
+        xs.insert(base.clone());
+        for c in possible_network {
+            xs.insert(c.clone());
+        }
+        result.insert(Network(xs));
+    }
+
+    result
 }
 
 type Computer = String;
