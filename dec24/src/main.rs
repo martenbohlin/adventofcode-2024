@@ -7,26 +7,78 @@ use std::rc::Rc;
 fn main() {
     let (wires, gates) = read_file(env::args().collect::<Vec<String>>()[1].clone());
     part1(&wires, &gates);
+    part2(&wires, &gates);
 }
 
-fn part1(wires: &HashMap<String, Rc<RefCell<Wire>>>, gates: &Vec<Gate>) {
-    let mut z_wires: Vec<Rc<RefCell<Wire>>> = Vec::new();
-    for wire in wires.values() {
-        if wire.borrow().name.starts_with("z") {
-            z_wires.push(wire.clone());
+fn part1(wires: &HashMap<String, Rc<RefCell<Wire>>>, _gates: &Vec<Gate>) {
+    let mut z_wires = find_wires_named("z", wires);
+    let result = value_of(&mut z_wires);
+    println!("Part 1: {:?}", result);
+}
+
+fn part2(wires: &HashMap<String, Rc<RefCell<Wire>>>, _gates: &Vec<Gate>) {
+    let mut x_wires = find_wires_named("x", wires);
+    let mut y_wires = find_wires_named("y", wires);
+    let mut z_wires = find_wires_named("z", wires);
+    for i in 22..45 {
+        let y = 1 << i;
+        let x = 0;
+        reset(wires);
+        set_value(&mut x_wires, x); // 0b1010_1010_1010_1010
+        set_value(&mut y_wires, y); // 0b0101_0101_0101_0101
+        println!("x: {:?}", value_of(&mut x_wires));
+        println!("y: {:?}", value_of(&mut y_wires));
+        let z = value_of(&mut z_wires);
+        println!("z: {:?} {:b}       {}", z, z, i);
+        if z != x + y {
+            break;
         }
+        // swap shj z07
+        // swap tpk wkb
+        // swap z23 pfn
+        // swap kcd z27
+        // kcd,pfn,shj,tpk,wkb,z07,z23,z27
     }
-    z_wires.sort_by(|a, b| b.borrow().name.cmp(&a.borrow().name));
+}
+
+fn reset(wires: &HashMap<String, Rc<RefCell<Wire>>>) {
+    for wire in wires.values() {
+        wire.borrow_mut().value = None;
+    }
+}
+
+fn set_value(wires: &mut Vec<Rc<RefCell<Wire>>>, value: i64) {
+    let mut  x = value;
+    for wire in wires.iter().rev() {
+        wire.borrow_mut().value = Some((x & 1) == 1);
+        x >>= 1;
+    }
+}
+
+fn value_of(wires: &mut Vec<Rc<RefCell<Wire>>>) -> i64 {
     let mut result = 0_i64;
-    for wire in &z_wires {
+    for wire in wires {
         let val = calculate_wire(wire.clone());
         result <<= 1;
         if val {
             result += 1;
         }
-        println!("Wire: {:?} {:?}, {}", wire.borrow().name, val, result);
+        //println!("Wire: {:?} {:?}, {}", wire.borrow().name, val, result);
     }
-    println!("Part 1: {:?}", result);
+    result
+}
+
+fn find_wires_named(name: &str, wires: &HashMap<String, Rc<RefCell<Wire>>>) -> Vec<Rc<RefCell< crate::Wire >>> {
+
+    let mut result: Vec<Rc<RefCell< crate::Wire >>> = Vec::new();
+
+    for wire in wires.values() {
+        if wire.borrow().name.starts_with(name) {
+            result.push(wire.clone());
+        }
+    }
+    result.sort_by(|a, b| b.borrow().name.cmp(&a.borrow().name));
+    result
 }
 
 fn calculate_wire(wire: Rc<RefCell<Wire>>) -> bool {
